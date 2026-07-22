@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmailJS Debug Test</title>
+  <style>
+    body { font-family: 'Inter', sans-serif; padding: 40px; background: #f8f9fc; color: #1e293b; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px; margin-bottom: 20px; box-shadow: 0 4px 24px rgba(0,0,0,0.06); }
+    h1 { font-size: 24px; margin-bottom: 8px; }
+    .status { padding: 12px 16px; border-radius: 8px; margin: 10px 0; font-size: 14px; font-family: monospace; }
+    .status.ok { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .status.fail { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .status.info { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+    .status.warn { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    button { padding: 14px 24px; border: none; border-radius: 10px; background: linear-gradient(135deg, #c42b33, #8b1e24); color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+    button:hover { transform: translateY(-2px); }
+    .log { background: #0f172a; color: #e2e8f0; padding: 16px; border-radius: 10px; font-family: monospace; font-size: 12px; line-height: 1.8; max-height: 400px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; }
+    .log .ok { color: #4ade80; }
+    .log .fail { color: #f87171; }
+    .log .info { color: #60a5fa; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; margin: 8px 0; font-size: 14px; }
+    label { font-size: 13px; font-weight: 600; color: #475569; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>🔧 EmailJS Debug Test</h1>
+      <p style="color:#94a3b8;">This will test your EmailJS setup and show the exact error</p>
+    </div>
+
+    <div class="card">
+      <h3>Your Configuration</h3>
+      <label>Service ID</label>
+      <input type="text" id="serviceId" value="default_service" placeholder="e.g. service_abc123">
+
+      <label>Template ID</label>
+      <input type="text" id="templateId" value="template_omtvkz8" placeholder="e.g. template_xyz789">
+
+      <label>Public Key</label>
+      <input type="text" id="publicKey" value="WBlJfWHNIoC7bp7Aj" placeholder="Your public key">
+
+      <label>CEO Email (To)</label>
+      <input type="email" id="toEmail" value="adnanmrao@gmail.com">
+
+      <label>Test Employee Name</label>
+      <input type="text" id="testName" value="Shakeel Ahmad">
+
+      <label>Test Department</label>
+      <select id="testDept">
+        <option value="SEO">SEO</option>
+        <option value="Social Media" selected>Social Media</option>
+        <option value="Graphic Design">Graphic Design</option>
+        <option value="Web Development">Web Development</option>
+      </select>
+
+      <button onclick="runTest()">🚀 Run EmailJS Test</button>
+    </div>
+
+    <div class="card">
+      <h3>📋 Test Results</h3>
+      <div id="results"></div>
+    </div>
+
+    <div class="card">
+      <h3>🖥️ Console Log</h3>
+      <div class="log" id="logOutput">Click "Run EmailJS Test" to see logs...</div>
+    </div>
+  </div>
+
+  <script>
+    function log(msg, type = 'info') {
+      const output = document.getElementById('logOutput');
+      const time = new Date().toLocaleTimeString();
+      const colorClass = type === 'ok' ? 'ok' : type === 'fail' ? 'fail' : 'info';
+      output.innerHTML += `<span class="${colorClass}">[${time}] ${msg}</span>
+`;
+      output.scrollTop = output.scrollHeight;
+      console.log(`[${type.toUpperCase()}] ${msg}`);
+    }
+
+    async function runTest() {
+      const results = document.getElementById('results');
+      const logOutput = document.getElementById('logOutput');
+      logOutput.innerHTML = '';
+      results.innerHTML = '';
+
+      const serviceId = document.getElementById('serviceId').value.trim();
+      const templateId = document.getElementById('templateId').value.trim();
+      const publicKey = document.getElementById('publicKey').value.trim();
+      const toEmail = document.getElementById('toEmail').value.trim();
+      const testName = document.getElementById('testName').value.trim();
+      const testDept = document.getElementById('testDept').value;
+
+      // Step 1: Check inputs
+      log('=== STEP 1: Checking inputs ===');
+      if (!serviceId) { addResult('Service ID missing', 'fail'); log('Service ID is empty!', 'fail'); return; }
+      if (!templateId) { addResult('Template ID missing', 'fail'); log('Template ID is empty!', 'fail'); return; }
+      if (!publicKey) { addResult('Public Key missing', 'fail'); log('Public Key is empty!', 'fail'); return; }
+      if (!toEmail) { addResult('To Email missing', 'fail'); log('To Email is empty!', 'fail'); return; }
+
+      log(`Service ID: ${serviceId}`, 'ok');
+      log(`Template ID: ${templateId}`, 'ok');
+      log(`Public Key: ${publicKey.substring(0, 8)}...`, 'ok');
+      addResult('Inputs valid', 'ok');
+
+      // Step 2: Initialize EmailJS
+      log('\n=== STEP 2: Initializing EmailJS ===');
+      try {
+        emailjs.init(publicKey);
+        log('emailjs.init() called successfully', 'ok');
+        addResult('EmailJS initialized', 'ok');
+      } catch (err) {
+        log(`Init failed: ${err.message || err}`, 'fail');
+        addResult('EmailJS init failed', 'fail');
+        return;
+      }
+
+      // Step 3: Prepare template params
+      log('\n=== STEP 3: Preparing template params ===');
+      const deptBadgeMap = {
+        "SEO": "seo", "Social Media": "social",
+        "Graphic Design": "design", "Web Development": "web"
+      };
+
+      const templateParams = {
+        to_email: toEmail,
+        employee_name: testName,
+        department: testDept,
+        department_badge: deptBadgeMap[testDept] || "seo",
+        time_slot: "11:00 AM - 12:00 PM",
+        work_done: "Test work description from debug tool",
+        timestamp: new Date().toLocaleString("en-US", {
+          weekday: "short", year: "numeric", month: "short", day: "numeric",
+          hour: "2-digit", minute: "2-digit"
+        }),
+        date: new Date().toLocaleDateString()
+      };
+
+      log('Template params:', 'info');
+      log(JSON.stringify(templateParams, null, 2), 'info');
+      addResult('Template params ready', 'ok');
+
+      // Step 4: Send email
+      log('\n=== STEP 4: Sending email ===');
+      log(`Service: ${serviceId}`, 'info');
+      log(`Template: ${templateId}`, 'info');
+
+      try {
+        const result = await emailjs.send(serviceId, templateId, templateParams);
+        log(`✅ EMAIL SENT! Status: ${result.status}`, 'ok');
+        log(`Response: ${JSON.stringify(result)}`, 'ok');
+        addResult('Email sent successfully!', 'ok');
+      } catch (err) {
+        log(`❌ EMAIL FAILED!`, 'fail');
+        log(`Error type: ${typeof err}`, 'fail');
+        log(`Error: ${JSON.stringify(err, Object.getOwnPropertyNames(err), 2)}`, 'fail');
+
+        // Extract specific error
+        let errorMsg = 'Unknown error';
+        if (err.text) errorMsg = err.text;
+        else if (err.message) errorMsg = err.message;
+        else if (typeof err === 'string') errorMsg = err;
+
+        log(`Error message: ${errorMsg}`, 'fail');
+        addResult(`Email failed: ${errorMsg}`, 'fail');
+
+        // Common fixes
+        log('\n=== COMMON FIXES ===', 'info');
+        if (errorMsg.includes('service') || errorMsg.includes('Service')) {
+          log('FIX: Go to EmailJS Dashboard → Email Services → Add Gmail → Set as default (⭐)', 'warn');
+        }
+        if (errorMsg.includes('template') || errorMsg.includes('Template')) {
+          log('FIX: Check Template ID in EmailJS Dashboard → Email Templates', 'warn');
+        }
+        if (errorMsg.includes('variable') || errorMsg.includes('parameter')) {
+          log('FIX: Check template variables match exactly: {{to_email}}, {{employee_name}}, {{department}}, etc.', 'warn');
+        }
+        if (errorMsg.includes('domain') || errorMsg.includes('whitelist')) {
+          log('FIX: Add your domain to EmailJS Account → Security → Domain Whitelist', 'warn');
+        }
+      }
+    }
+
+    function addResult(msg, type) {
+      const results = document.getElementById('results');
+      const div = document.createElement('div');
+      div.className = `status ${type}`;
+      div.textContent = (type === 'ok' ? '✅ ' : type === 'fail' ? '❌ ' : 'ℹ️ ') + msg;
+      results.appendChild(div);
+    }
+  </script>
+</body>
+</html>
