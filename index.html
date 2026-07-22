@@ -722,7 +722,6 @@
       .stats-grid { grid-template-columns: 1fr; }
     }
   </style>
-<base target="_blank">
 </head>
 <body>
   <div class="orb orb-1"></div>
@@ -1012,32 +1011,52 @@
 
     async function sendEmailNotification(reportData) {
       if (!emailjsReady) {
-        console.log("EmailJS not ready - skipping email");
+        console.log("❌ EmailJS not ready - check console for init errors");
         return { success: false, reason: "not_configured" };
       }
 
       try {
+        const deptBadgeMap = {
+          "SEO": "seo",
+          "Social Media": "social",
+          "Graphic Design": "design",
+          "Web Development": "web"
+        };
+
         const templateParams = {
           to_email: EMAILJS_CONFIG.ceoEmail,
           employee_name: reportData.employeeName,
           department: reportData.department,
+          department_badge: deptBadgeMap[reportData.department] || "seo",
           time_slot: reportData.timeSlot,
           work_done: reportData.workDone,
-          timestamp: new Date(reportData.timestamp).toLocaleString(),
+          timestamp: new Date(reportData.timestamp).toLocaleString("en-US", {
+            weekday: "short", year: "numeric", month: "short", day: "numeric",
+            hour: "2-digit", minute: "2-digit"
+          }),
           date: reportData.date
         };
 
-        await emailjs.send(
+        console.log("📧 Sending email with params:", templateParams);
+        console.log("📧 Service ID:", EMAILJS_CONFIG.serviceId);
+        console.log("📧 Template ID:", EMAILJS_CONFIG.templateId);
+
+        const result = await emailjs.send(
           EMAILJS_CONFIG.serviceId,
           EMAILJS_CONFIG.templateId,
           templateParams
         );
 
-        console.log("Email sent successfully");
-        return { success: true };
+        console.log("✅ Email sent successfully! Response:", result);
+        return { success: true, result: result };
       } catch (err) {
-        console.error("Email send error:", err);
-        return { success: false, reason: "send_failed", error: err.message };
+        console.error("❌ Email send FAILED:");
+        console.error("   Error:", err);
+        console.error("   Error text:", err.text || "N/A");
+        console.error("   Error status:", err.status || "N/A");
+        console.error("   Service ID used:", EMAILJS_CONFIG.serviceId);
+        console.error("   Template ID used:", EMAILJS_CONFIG.templateId);
+        return { success: false, reason: "send_failed", error: err.text || err.message, fullError: err };
       }
     }
 
@@ -1402,14 +1421,18 @@
       if (emailResult) {
         emailStatusRow.style.display = 'flex';
         if (emailResult.success) {
-          emailStatus.textContent = 'Sent to CEO';
+          emailStatus.textContent = '✅ Sent to CEO';
           emailStatus.style.color = 'var(--success)';
         } else if (emailResult.reason === 'not_configured') {
-          emailStatus.textContent = 'Email not configured';
+          emailStatus.textContent = '⚠️ Email not configured';
           emailStatus.style.color = 'var(--warning)';
         } else {
-          emailStatus.textContent = 'Email failed';
+          const errMsg = emailResult.error || 'Unknown error';
+          emailStatus.innerHTML = '❌ Failed: ' + errMsg;
           emailStatus.style.color = 'var(--danger)';
+          emailStatus.style.fontSize = '11px';
+          emailStatus.style.wordBreak = 'break-word';
+          console.error("Email Error displayed:", errMsg);
         }
       }
 
