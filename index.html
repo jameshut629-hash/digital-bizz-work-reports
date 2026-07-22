@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Bizz — Daily Work Report</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <!-- EmailJS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8f9fc;
+      --bg-card: #ffffff;
+      --bg-input: #f1f5f9;
+      --bg-hover: #e2e8f0;
+      --border: #e2e8f0;
+      --border-hover: #cbd5e1;
+      --border-focus: rgba(196,43,51,0.4);
+      --text: #1e293b;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent: #c42b33;
+      --accent-light: #e84a52;
+      --accent-dark: #8b1e24;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --info: #2563eb;
+      --shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+      --shadow-lg: 0 20px 60px rgba(0,0,0,0.08), 0 8px 20px rgba(0,0,0,0.04);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 14px;
+      --radius-xl: 20px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      min-height: 100vh;
+      padding: 48px 16px;
+      position: relative;
+      overflow-x: hidden;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Subtle gradient orbs */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.15;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .orb-1 { width: 400px; height: 400px; background: linear-gradient(135deg, #c42b33, #e84a52); top: -100px; right: -100px; }
+    .orb-2 { width: 300px; height: 300px; background: linear-gradient(135deg, #3b82f6, #60a5fa); bottom: -80px; left: -80px; }
+    .orb-3 { width: 250px; height: 250px; background: linear-gradient(135deg, #8b5cf6, #a78bfa); top: 40%; left: 10%; opacity: 0.08; }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      animation: fadeInDown 0.6s ease both;
+    }
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+      padding: 14px 24px;
+      background: rgba(196,43,51,0.06);
+      border: 1px solid rgba(196,43,51,0.12);
+      border-radius: 16px;
+      backdrop-filter: blur(10px);
+    }
+    .brand-logo {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(196,43,51,0.25);
+    }
+    .brand-name { font-size: 22px; font-weight: 800; letter-spacing: -0.03em; color: var(--text); }
+    .brand-tag { font-size: 11px; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px; }
+
+    .header h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+    .header p { color: var(--text-secondary); font-size: 15px; }
+
+    .pills {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 500;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .pill .live {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      animation: pulse 2.5s ease infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 36px;
+      box-shadow: var(--shadow-lg);
+      animation: fadeInUp 0.6s ease 0.15s both;
+    }
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .card::before {
+      content: '';
+      display: block;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light), var(--accent));
+      margin: -36px -36px 32px -36px;
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+      opacity: 0.8;
+    }
+
+    .section { margin-bottom: 28px; }
+    .section-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .section-num {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      color: #ffffff;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(196,43,51,0.2);
+    }
+    .section-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    .section-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+    .field { margin-bottom: 16px; }
+    .field-label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-secondary);
+    }
+    .field-label .req { color: var(--danger); font-size: 11px; }
+    .field-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; }
+
+    .select-wrap { position: relative; }
+    .select-wrap::after {
+      content: '';
+      position: absolute;
+      right: 16px; top: 50%;
+      transform: translateY(-50%);
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 4px solid var(--text-muted);
+      pointer-events: none;
+    }
+    select, textarea, input[type="date"] {
+      width: 100%;
+      padding: 14px 16px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text);
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      outline: none;
+      transition: all 0.25s ease;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    select { padding-right: 40px; cursor: pointer; }
+    select:focus, textarea:focus, input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(196,43,51,0.1);
+      background: #fff;
+    }
+    select:hover, textarea:hover, input:hover { border-color: var(--border-hover); }
+    select option {
+      background: #fff;
+      color: var(--text);
+      padding: 10px;
+      font-size: 14px;
+    }
+    select:invalid { color: var(--text-muted); }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+      line-height: 1.6;
+      padding: 16px;
+    }
+    textarea::placeholder { color: var(--text-muted); opacity: 0.6; font-size: 13px; }
+
+    .btn-submit {
+      width: 100%;
+      padding: 18px;
+      border-radius: var(--radius-lg);
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-top: 8px;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 0.01em;
+      box-shadow: 0 4px 16px rgba(196,43,51,0.25);
+    }
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(196,43,51,0.35);
+    }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .sep {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 28px 0;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 28px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    /* Connection Status */
+    .conn-status {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      padding: 10px 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 12px;
+      color: var(--text-muted);
+      animation: fadeInDown 0.6s ease both;
+      box-shadow: var(--shadow);
+    }
+    .conn-status .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow: 0 0 8px rgba(22,163,74,0.4);
+      animation: pulse 2s ease infinite;
+    }
+    .conn-status .dot.offline {
+      background: var(--warning);
+      box-shadow: 0 0 8px rgba(217,119,6,0.4);
+    }
+    .conn-status .dot.error {
+      background: var(--danger);
+      box-shadow: 0 0 8px rgba(220,38,38,0.4);
+    }
+
+    /* Popup Styles */
+    .popup-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(30,41,59,0.6);
+      backdrop-filter: blur(12px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.3s ease;
+    }
+    .popup-overlay.show { display: flex; }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .popup-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 36px 32px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      animation: slideUp 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+      position: relative;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px) scale(0.97); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .popup-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    }
+    .popup-icon {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: rgba(196,43,51,0.08);
+      border: 1.5px solid rgba(196,43,51,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin: 0 auto 20px;
+    }
+    .popup-title {
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+    .popup-text {
+      color: var(--text-secondary);
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .popup-detail {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+    }
+    .popup-detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .popup-detail-row:last-child { border-bottom: none; }
+    .popup-detail-label { color: var(--text-muted); font-weight: 500; }
+    .popup-detail-value { font-weight: 600; color: var(--text); text-align: right; max-width: 55%; }
+    .popup-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .popup-actions button {
+      flex: 1;
+      padding: 14px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      font-family: 'Inter', sans-serif;
+      border: none;
+    }
+    .btn-cancel {
+      background: var(--bg-input);
+      border: 1px solid var(--border) !important;
+      color: var(--text-secondary);
+    }
+    .btn-cancel:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+      border-color: var(--border-hover) !important;
+    }
+    .btn-confirm {
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      color: #ffffff;
+    }
+    .btn-confirm:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(196,43,51,0.3);
+    }
+
+    /* Success Overlay */
+    .success-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(30,41,59,0.7);
+      backdrop-filter: blur(20px);
+      z-index: 1001;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .success-overlay.show { display: flex; animation: fadeIn 0.4s ease; }
+    .success-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 48px 40px;
+      text-align: center;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      overflow: hidden;
+      animation: slideUp 0.5s cubic-bezier(0.4, 0, 0.2, 1) 0.1s both;
+    }
+    .success-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--success), #4ade80);
+    }
+    .success-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 16px;
+      transition: all 0.25s ease;
+      z-index: 2;
+    }
+    .success-close:hover {
+      background: rgba(220,38,38,0.1);
+      border-color: rgba(220,38,38,0.2);
+      color: var(--danger);
+      transform: rotate(90deg);
+    }
+    .success-icon {
+      width: 72px; height: 72px;
+      border-radius: 50%;
+      background: rgba(22,163,74,0.08);
+      border: 2px solid rgba(22,163,74,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      margin: 0 auto 24px;
+      animation: scaleIn 0.5s ease 0.2s both;
+      box-shadow: 0 0 40px rgba(22,163,74,0.15);
+    }
+    @keyframes scaleIn {
+      from { transform: scale(0); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .success-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.03em; color: var(--text); }
+    .success-text { color: var(--text-secondary); font-size: 14px; margin-bottom: 28px; }
+    .success-detail {
+      background: rgba(22,163,74,0.03);
+      border: 1px solid rgba(22,163,74,0.1);
+      border-radius: 12px;
+      padding: 20px;
+      text-align: left;
+      font-size: 13px;
+      margin-bottom: 28px;
+      color: var(--text-secondary);
+    }
+    .success-detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+    .success-detail-row:last-child { border-bottom: none; }
+    .success-detail-label { color: var(--text-muted); font-weight: 500; }
+    .success-detail-value { font-weight: 600; color: var(--text); text-align: right; max-width: 55%; }
+    .btn-new {
+      padding: 14px 28px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      font-family: 'Inter', sans-serif;
+    }
+    .btn-new:hover {
+      background: var(--bg-hover);
+      color: var(--text);
+      border-color: var(--border-hover);
+    }
+
+    /* Admin Panel Toggle */
+    .admin-toggle {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(196,43,51,0.3);
+      z-index: 100;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .admin-toggle:hover { transform: scale(1.1); }
+
+    /* Admin Panel */
+    .admin-panel {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(248,249,252,0.95);
+      backdrop-filter: blur(30px);
+      z-index: 1002;
+      overflow-y: auto;
+      padding: 40px 20px;
+    }
+    .admin-panel.show { display: block; animation: fadeIn 0.4s ease; }
+    .admin-header {
+      max-width: 900px;
+      margin: 0 auto 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .admin-header h2 { font-size: 24px; font-weight: 800; color: var(--text); }
+    .admin-close {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+      box-shadow: var(--shadow);
+    }
+    .admin-close:hover {
+      background: rgba(220,38,38,0.1);
+      border-color: rgba(220,38,38,0.2);
+      color: var(--danger);
+    }
+    .stats-grid {
+      max-width: 900px;
+      margin: 0 auto 30px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      text-align: center;
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+    }
+    .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .stat-label { font-size: 12px; color: var(--text-muted); }
+    .reports-table {
+      max-width: 900px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .reports-table-header {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1.5fr 2fr 1fr;
+      padding: 14px 20px;
+      background: var(--bg-input);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .reports-table-row {
+      display: grid;
+      grid-template-columns: 2fr 1.5fr 1.5fr 2fr 1fr;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+      color: var(--text-secondary);
+      align-items: center;
+    }
+    .reports-table-row:last-child { border-bottom: none; }
+    .reports-table-row:hover { background: var(--bg-input); }
+    .dept-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .dept-seo { background: rgba(22,163,74,0.1); color: #16a34a; }
+    .dept-social { background: rgba(59,130,246,0.1); color: #2563eb; }
+    .dept-design { background: rgba(168,85,247,0.1); color: #9333ea; }
+    .dept-web { background: rgba(245,158,11,0.1); color: #d97706; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .reports-table-header,
+      .reports-table-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+      .reports-table-header { display: none; }
+      .reports-table-row {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+    }
+    @media (max-width: 520px) {
+      body { padding: 32px 12px; }
+      .card { padding: 24px; border-radius: 16px; }
+      .card::before { margin: -24px -24px 24px -24px; border-radius: 16px 16px 0 0; }
+      .header h1 { font-size: 26px; }
+      .popup-card { padding: 28px 22px; }
+      .success-card { padding: 36px 24px; }
+      .stats-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <div class="container">
+    <!-- Connection Status -->
+    <div class="conn-status" id="connStatus">
+      <div class="dot" id="connDot"></div>
+      <span id="connText">System Ready</span>
+    </div>
+
+    <div class="header">
+      <div class="brand">
+        <div class="brand-logo">DB</div>
+        <div>
+          <div class="brand-name">Digital Bizz</div>
+          <div class="brand-tag">Your Digital Partner</div>
+        </div>
+      </div>
+      <h1>Daily Work Report</h1>
+      <p>Submit your daily work report</p>
+      <div class="pills">
+        <div class="pill"><div class="live"></div> Office: 9 AM — 7 PM</div>
+        <div class="pill">9 Time Slots</div>
+        <div class="pill">9 Team Members</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <form id="reportForm">
+
+        <div class="section">
+          <div class="section-head">
+            <div class="section-num">1</div>
+            <div>
+              <div class="section-title">Employee Information</div>
+              <div class="section-sub">Select your details from the dropdowns</div>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+            <div class="field">
+              <div class="field-label">Employee Name <span class="req">*</span></div>
+              <div class="select-wrap">
+                <select id="employeeName" required>
+                  <option value="" disabled selected>Select your name...</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-label">Department <span class="req">*</span></div>
+              <div class="select-wrap">
+                <select id="department" required>
+                  <option value="" disabled selected>Select department...</option>
+                  <option value="SEO">SEO Department</option>
+                  <option value="Social Media">Social Media</option>
+                  <option value="Graphic Design">Graphic Design</option>
+                  <option value="Web Development">Web Development</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="section">
+          <div class="section-head">
+            <div class="section-num">2</div>
+            <div>
+              <div class="section-title">Select Time Slot</div>
+              <div class="section-sub">Choose the time slot for your report</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">Time Slot <span class="req">*</span></div>
+            <div class="select-wrap">
+              <select id="timeSlot" required>
+                <option value="" disabled selected>Select time slot...</option>
+                <option value="9:00 AM - 10:00 AM">9:00 AM — 10:00 AM</option>
+                <option value="10:00 AM - 11:00 AM">10:00 AM — 11:00 AM</option>
+                <option value="11:00 AM - 12:00 PM">11:00 AM — 12:00 PM</option>
+                <option value="12:00 PM - 1:00 PM">12:00 PM — 1:00 PM</option>
+                <option value="1:00 PM - 2:00 PM" disabled>1:00 PM — 2:00 PM (Lunch Break)</option>
+                <option value="2:00 PM - 3:00 PM">2:00 PM — 3:00 PM</option>
+                <option value="3:00 PM - 4:00 PM">3:00 PM — 4:00 PM</option>
+                <option value="4:00 PM - 5:00 PM">4:00 PM — 5:00 PM</option>
+                <option value="5:00 PM - 6:00 PM">5:00 PM — 6:00 PM</option>
+                <option value="6:00 PM - 7:00 PM">6:00 PM — 7:00 PM</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="section">
+          <div class="section-head">
+            <div class="section-num">3</div>
+            <div>
+              <div class="section-title">Work Description</div>
+              <div class="section-sub">Describe what you accomplished for today</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label">Work Done <span class="req">*</span></div>
+            <div class="field-hint">Be specific and detailed about your accomplishments</div>
+            <textarea id="workDone" placeholder="Example: Completed keyword research for 5 client websites, Updated meta descriptions for 12 pages, Fixed 3 broken links..." required></textarea>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit">
+          <span class="spinner" id="submitSpinner"></span>
+          <span id="submitText">Submit Report</span>
+        </button>
+      </form>
+    </div>
+
+    <div class="footer">
+      Design & Development by GenZ Lab
+    </div>
+  </div>
+
+  <!-- Confirm Popup -->
+  <div class="popup-overlay" id="confirmPopup">
+    <div class="popup-card">
+      <div class="popup-icon">📋</div>
+      <div class="popup-title">Confirm Submission</div>
+      <div class="popup-text">Please review your report details before final submission.</div>
+      <div class="popup-detail">
+        <div class="popup-detail-row">
+          <span class="popup-detail-label">Employee</span>
+          <span class="popup-detail-value" id="confirmName">—</span>
+        </div>
+        <div class="popup-detail-row">
+          <span class="popup-detail-label">Department</span>
+          <span class="popup-detail-value" id="confirmDept">—</span>
+        </div>
+        <div class="popup-detail-row">
+          <span class="popup-detail-label">Time Slot</span>
+          <span class="popup-detail-value" id="confirmTime">—</span>
+        </div>
+      </div>
+      <div class="popup-actions">
+        <button class="btn-cancel" onclick="closeConfirm()">Cancel</button>
+        <button class="btn-confirm" onclick="proceedSubmit()">Confirm Submit</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Overlay -->
+  <div class="success-overlay" id="successOverlay">
+    <div class="success-card">
+      <div class="success-close" onclick="closeSuccess()" title="Close">✕</div>
+      <div class="success-icon">✅</div>
+      <h2 class="success-title">Report Submitted!</h2>
+      <p class="success-text">Your daily work report has been recorded successfully.</p>
+      <div class="success-detail">
+        <div class="success-detail-row">
+          <span class="success-detail-label">Employee</span>
+          <span class="success-detail-value" id="successName">—</span>
+        </div>
+        <div class="success-detail-row">
+          <span class="success-detail-label">Department</span>
+          <span class="success-detail-value" id="successDept">—</span>
+        </div>
+        <div class="success-detail-row">
+          <span class="success-detail-label">Time Slot</span>
+          <span class="success-detail-value" id="successTime">—</span>
+        </div>
+        <div class="success-detail-row">
+          <span class="success-detail-label">Submitted At</span>
+          <span class="success-detail-value" id="successTimeStamp">—</span>
+        </div>
+        <div class="success-detail-row" id="emailStatusRow" style="display:none;">
+          <span class="success-detail-label">Email Status</span>
+          <span class="success-detail-value" id="emailStatus">—</span>
+        </div>
+      </div>
+      <button class="btn-new" onclick="resetForm()">Submit Another Report</button>
+    </div>
+  </div>
+
+  <!-- Admin Panel -->
+  <button class="admin-toggle" onclick="toggleAdmin()" title="Admin Dashboard">📊</button>
+  <div class="admin-panel" id="adminPanel">
+    <div class="admin-header">
+      <h2>Work Reports Dashboard</h2>
+      <button class="admin-close" onclick="toggleAdmin()">✕</button>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-label">Total Reports</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statToday">0</div>
+        <div class="stat-label">Today</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statEmployees">0</div>
+        <div class="stat-label">Active Employees</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statDepartments">0</div>
+        <div class="stat-label">Departments</div>
+      </div>
+    </div>
+    <div class="reports-table">
+      <div class="reports-table-header">
+        <div>Employee</div>
+        <div>Department</div>
+        <div>Time Slot</div>
+        <div>Work Done</div>
+        <div>Date</div>
+      </div>
+      <div id="reportsTableBody"></div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== CONFIGURATION ====================
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyDNKDGoNT96JfH8I6RdTgSyVh8H_Ft6gf8",
+      authDomain: "digital-bizz-work-reports.firebaseapp.com",
+      projectId: "digital-bizz-work-reports",
+      storageBucket: "digital-bizz-work-reports.firebasestorage.app",
+      messagingSenderId: "470474549381",
+      appId: "1:470474549381:web:42f2ac8181c463c6c3a1ec"
+    };
+
+    const EMAILJS_CONFIG = {
+      serviceId: "YOUR_SERVICE_ID",
+      templateId: "YOUR_TEMPLATE_ID",
+      publicKey: "YOUR_PUBLIC_KEY",
+      ceoEmail: "adnanmrao@gmail.com"
+    };
+
+    // ==================== FIREBASE INITIALIZATION ====================
+    let db = null;
+    let isOnline = true;
+
+    function initFirebase() {
+      try {
+        firebase.initializeApp(FIREBASE_CONFIG);
+        db = firebase.firestore();
+        updateConnectionStatus(true, "System Ready");
+        console.log("Firebase initialized successfully");
+        return true;
+      } catch (err) {
+        console.error("Firebase init error:", err);
+        updateConnectionStatus(false, "Offline Mode - Saving Locally");
+        return false;
+      }
+    }
+
+    function updateConnectionStatus(online, message) {
+      isOnline = online;
+      const dot = document.getElementById('connDot');
+      const text = document.getElementById('connText');
+      text.textContent = message;
+      dot.className = 'dot';
+      if (!online) dot.classList.add('offline');
+    }
+
+    // ==================== EMAILJS INITIALIZATION ====================
+    let emailjsReady = false;
+
+    function initEmailJS() {
+      if (EMAILJS_CONFIG.publicKey && EMAILJS_CONFIG.publicKey !== "YOUR_PUBLIC_KEY") {
+        try {
+          emailjs.init(EMAILJS_CONFIG.publicKey);
+          emailjsReady = true;
+          console.log("EmailJS initialized");
+        } catch (err) {
+          console.error("EmailJS init error:", err);
+        }
+      } else {
+        console.log("EmailJS not configured - skipping email integration");
+      }
+    }
+
+    async function sendEmailNotification(reportData) {
+      if (!emailjsReady) {
+        console.log("EmailJS not ready - skipping email");
+        return { success: false, reason: "not_configured" };
+      }
+
+      try {
+        const templateParams = {
+          to_email: EMAILJS_CONFIG.ceoEmail,
+          employee_name: reportData.employeeName,
+          department: reportData.department,
+          time_slot: reportData.timeSlot,
+          work_done: reportData.workDone,
+          timestamp: new Date(reportData.timestamp).toLocaleString(),
+          date: reportData.date
+        };
+
+        await emailjs.send(
+          EMAILJS_CONFIG.serviceId,
+          EMAILJS_CONFIG.templateId,
+          templateParams
+        );
+
+        console.log("Email sent successfully");
+        return { success: true };
+      } catch (err) {
+        console.error("Email send error:", err);
+        return { success: false, reason: "send_failed", error: err.message };
+      }
+    }
+
+    // ==================== OFFLINE STORAGE (IndexedDB) ====================
+    const DB_NAME = 'DigitalBizzDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'workReports';
+    let idb = null;
+
+    function initIndexedDB() {
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = () => reject(request.error);
+        request.onsuccess = () => {
+          idb = request.result;
+          console.log('IndexedDB opened successfully');
+          resolve(idb);
+        };
+
+        request.onupgradeneeded = (event) => {
+          const database = event.target.result;
+          if (!database.objectStoreNames.contains(STORE_NAME)) {
+            const store = database.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+            store.createIndex('employeeName', 'employeeName', { unique: false });
+            store.createIndex('department', 'department', { unique: false });
+            store.createIndex('date', 'date', { unique: false });
+            store.createIndex('synced', 'synced', { unique: false });
+            console.log('Object store created');
+          }
+        };
+      });
+    }
+
+    function saveToIndexedDB(reportData, synced = false) {
+      return new Promise((resolve, reject) => {
+        const transaction = idb.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        reportData.synced = synced;
+        const request = store.add(reportData);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function getUnsyncedReports() {
+      return new Promise((resolve, reject) => {
+        const transaction = idb.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const index = store.index('synced');
+        const request = index.getAll(false);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function markAsSynced(id) {
+      return new Promise((resolve, reject) => {
+        const transaction = idb.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.get(id);
+        request.onsuccess = () => {
+          const data = request.result;
+          data.synced = true;
+          store.put(data);
+          resolve();
+        };
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    function getAllLocalReports() {
+      return new Promise((resolve, reject) => {
+        const transaction = idb.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // ==================== SYNC MECHANISM ====================
+    async function syncOfflineReports() {
+      if (!db || !isOnline) return;
+
+      try {
+        const unsynced = await getUnsyncedReports();
+        console.log(`Found ${unsynced.length} unsynced reports`);
+
+        for (const report of unsynced) {
+          try {
+            const docRef = await db.collection('workReports').add({
+              employeeName: report.employeeName,
+              department: report.department,
+              timeSlot: report.timeSlot,
+              workDone: report.workDone,
+              timestamp: report.timestamp,
+              date: report.date,
+              source: 'synced_from_offline'
+            });
+            await markAsSynced(report.id);
+            console.log(`Synced report ${report.id} to Firebase, doc ID: ${docRef.id}`);
+          } catch (err) {
+            console.error(`Failed to sync report ${report.id}:`, err);
+          }
+        }
+      } catch (err) {
+        console.error("Sync error:", err);
+      }
+    }
+
+    // ==================== SAVE REPORT ====================
+    async function saveReport(reportData) {
+      const timestamp = new Date().toISOString();
+      const date = new Date().toLocaleDateString();
+      reportData.timestamp = timestamp;
+      reportData.date = date;
+
+      const localId = await saveToIndexedDB({ ...reportData }, false);
+      console.log('Saved to IndexedDB, ID:', localId);
+
+      let firebaseDocId = null;
+
+      if (db && isOnline) {
+        try {
+          const docRef = await db.collection('workReports').add({
+            employeeName: reportData.employeeName,
+            department: reportData.department,
+            timeSlot: reportData.timeSlot,
+            workDone: reportData.workDone,
+            timestamp: timestamp,
+            date: date,
+            source: 'direct_submit'
+          });
+          firebaseDocId = docRef.id;
+          await markAsSynced(localId);
+          console.log('Saved to Firebase, ID:', firebaseDocId);
+        } catch (err) {
+          console.error('Firebase save failed, kept in IndexedDB:', err);
+          updateConnectionStatus(false, "Offline - Saved Locally");
+        }
+      } else {
+        console.log('Offline - report saved locally, will sync later');
+      }
+
+      return { localId, firebaseDocId, timestamp, date };
+    }
+
+    // ==================== FETCH REPORTS ====================
+    async function getAllReports() {
+      const reports = [];
+
+      if (db && isOnline) {
+        try {
+          const snapshot = await db.collection('workReports')
+            .orderBy('timestamp', 'desc')
+            .get();
+          snapshot.forEach(doc => {
+            reports.push({ id: doc.id, ...doc.data(), source: 'firebase' });
+          });
+          console.log(`Fetched ${reports.length} reports from Firebase`);
+          return reports;
+        } catch (err) {
+          console.error('Firebase fetch error:', err);
+        }
+      }
+
+      const localReports = await getAllLocalReports();
+      console.log(`Fetched ${localReports.length} reports from IndexedDB`);
+      return localReports.map(r => ({ ...r, source: 'local' }));
+    }
+
+    // ==================== FORM HANDLING ====================
+    let pendingFormData = null;
+
+    function playSuccessSound() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const now = ctx.currentTime;
+
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(523.25, now);
+        osc1.frequency.exponentialRampToValueAtTime(659.25, now + 0.1);
+        gain1.gain.setValueAtTime(0, now);
+        gain1.gain.linearRampToValueAtTime(0.15, now + 0.05);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc1.start(now);
+        osc1.stop(now + 0.4);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(659.25, now + 0.08);
+        osc2.frequency.exponentialRampToValueAtTime(783.99, now + 0.18);
+        gain2.gain.setValueAtTime(0, now + 0.08);
+        gain2.gain.linearRampToValueAtTime(0.12, now + 0.13);
+        gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+        osc2.start(now + 0.08);
+        osc2.stop(now + 0.5);
+
+        const osc3 = ctx.createOscillator();
+        const gain3 = ctx.createGain();
+        osc3.connect(gain3);
+        gain3.connect(ctx.destination);
+        osc3.type = 'sine';
+        osc3.frequency.setValueAtTime(783.99, now + 0.16);
+        osc3.frequency.exponentialRampToValueAtTime(1046.50, now + 0.26);
+        gain3.gain.setValueAtTime(0, now + 0.16);
+        gain3.gain.linearRampToValueAtTime(0.1, now + 0.21);
+        gain3.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+        osc3.start(now + 0.16);
+        osc3.stop(now + 0.7);
+      } catch (e) {
+        console.log('Audio not supported');
+      }
+    }
+
+    // Load employees from localStorage (synced from admin)
+    function loadEmployeeDropdown() {
+      const select = document.getElementById('employeeName');
+      const stored = localStorage.getItem('dbEmployees');
+      let employees = [];
+
+      if (stored) {
+        employees = JSON.parse(stored);
+      } else {
+        // Default employees
+        employees = [
+          { name: "Faiza Khan", department: "SEO" },
+          { name: "Amina Basharat", department: "SEO" },
+          { name: "Shahid Imran", department: "SEO" },
+          { name: "M Waqas", department: "SEO" },
+          { name: "Bushra Hamad", department: "Social Media" },
+          { name: "Mahnoor Kamran", department: "Social Media" },
+          { name: "Zaki Ibrar", department: "Social Media" },
+          { name: "Faryal Rao", department: "Graphic Design" },
+          { name: "Shakeel Ahmad", department: "Web Development" }
+        ];
+      }
+
+      // Clear existing options except first
+      while (select.options.length > 1) {
+        select.remove(1);
+      }
+
+      employees.forEach(emp => {
+        const option = document.createElement('option');
+        option.value = emp.name;
+        option.textContent = emp.name;
+        select.appendChild(option);
+      });
+    }
+
+    // Load on page load
+    loadEmployeeDropdown();
+
+    document.getElementById('employeeName').addEventListener('change', function() {
+      const name = this.value;
+      const deptSelect = document.getElementById('department');
+      const stored = localStorage.getItem('dbEmployees');
+      let employees = [];
+
+      if (stored) {
+        employees = JSON.parse(stored);
+      } else {
+        employees = [
+          { name: "Faiza Khan", department: "SEO" },
+          { name: "Amina Basharat", department: "SEO" },
+          { name: "Shahid Imran", department: "SEO" },
+          { name: "M Waqas", department: "SEO" },
+          { name: "Bushra Hamad", department: "Social Media" },
+          { name: "Mahnoor Kamran", department: "Social Media" },
+          { name: "Zaki Ibrar", department: "Social Media" },
+          { name: "Faryal Rao", department: "Graphic Design" },
+          { name: "Shakeel Ahmad", department: "Web Development" }
+        ];
+      }
+
+      const emp = employees.find(e => e.name === name);
+      if (emp) deptSelect.value = emp.department;
+    });
+
+    document.getElementById('reportForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const name = document.getElementById('employeeName').value;
+      const dept = document.getElementById('department').value;
+      const timeSlot = document.getElementById('timeSlot').value;
+      const work = document.getElementById('workDone').value;
+
+      if (!timeSlot) {
+        alert('Please select a time slot.');
+        return;
+      }
+      if (!work.trim()) {
+        alert('Please describe the work done.');
+        return;
+      }
+
+      pendingFormData = {
+        employeeName: name,
+        department: dept,
+        timeSlot: timeSlot,
+        workDone: work
+      };
+
+      document.getElementById('confirmName').textContent = name;
+      document.getElementById('confirmDept').textContent = dept;
+      document.getElementById('confirmTime').textContent = timeSlot;
+      document.getElementById('confirmPopup').classList.add('show');
+    });
+
+    function closeConfirm() {
+      document.getElementById('confirmPopup').classList.remove('show');
+      pendingFormData = null;
+    }
+
+    async function proceedSubmit() {
+      if (!pendingFormData) return;
+
+      document.getElementById('confirmPopup').classList.remove('show');
+
+      const btn = document.querySelector('.btn-submit');
+      const spinner = document.getElementById('submitSpinner');
+      const btnText = document.getElementById('submitText');
+      btn.disabled = true;
+      spinner.style.display = 'inline-block';
+      btnText.textContent = 'Saving...';
+
+      try {
+        const result = await saveReport(pendingFormData);
+        console.log('Report saved:', result);
+
+        const emailResult = await sendEmailNotification(pendingFormData);
+
+        showSuccess(pendingFormData, emailResult);
+      } catch (err) {
+        console.error('Save error:', err);
+        alert('Error saving report. Please try again.');
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = 'Submit Report';
+      }
+    }
+
+    function showSuccess(data, emailResult) {
+      document.getElementById('successName').textContent = data.employeeName;
+      document.getElementById('successDept').textContent = data.department;
+      document.getElementById('successTime').textContent = data.timeSlot;
+      document.getElementById('successTimeStamp').textContent = new Date(data.timestamp).toLocaleString();
+
+      const emailStatusRow = document.getElementById('emailStatusRow');
+      const emailStatus = document.getElementById('emailStatus');
+      if (emailResult) {
+        emailStatusRow.style.display = 'flex';
+        if (emailResult.success) {
+          emailStatus.textContent = 'Sent to CEO';
+          emailStatus.style.color = 'var(--success)';
+        } else if (emailResult.reason === 'not_configured') {
+          emailStatus.textContent = 'Email not configured';
+          emailStatus.style.color = 'var(--warning)';
+        } else {
+          emailStatus.textContent = 'Email failed';
+          emailStatus.style.color = 'var(--danger)';
+        }
+      }
+
+      document.getElementById('successOverlay').classList.add('show');
+      playSuccessSound();
+
+      const btn = document.querySelector('.btn-submit');
+      const spinner = document.getElementById('submitSpinner');
+      const btnText = document.getElementById('submitText');
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      btnText.textContent = 'Submit Report';
+    }
+
+    function closeSuccess() {
+      document.getElementById('successOverlay').classList.remove('show');
+      pendingFormData = null;
+    }
+
+    function resetForm() {
+      document.getElementById('reportForm').reset();
+      pendingFormData = null;
+      document.getElementById('successOverlay').classList.remove('show');
+      document.getElementById('emailStatusRow').style.display = 'none';
+    }
+
+    document.getElementById('confirmPopup').addEventListener('click', function(e) {
+      if (e.target === this) closeConfirm();
+    });
+    document.getElementById('successOverlay').addEventListener('click', function(e) {
+      if (e.target === this) closeSuccess();
+    });
+
+    // ==================== ADMIN DASHBOARD ====================
+    async function toggleAdmin() {
+      const panel = document.getElementById('adminPanel');
+      if (panel.classList.contains('show')) {
+        panel.classList.remove('show');
+      } else {
+        panel.classList.add('show');
+        await loadAdminData();
+      }
+    }
+
+    async function loadAdminData() {
+      try {
+        const reports = await getAllReports();
+        const today = new Date().toLocaleDateString();
+
+        const total = reports.length;
+        const todayReports = reports.filter(r => r.date === today).length;
+        const employees = new Set(reports.map(r => r.employeeName)).size;
+        const departments = new Set(reports.map(r => r.department)).size;
+
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statToday').textContent = todayReports;
+        document.getElementById('statEmployees').textContent = employees;
+        document.getElementById('statDepartments').textContent = departments;
+
+        const tbody = document.getElementById('reportsTableBody');
+        tbody.innerHTML = '';
+
+        if (reports.length === 0) {
+          tbody.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">No reports yet</div>';
+          return;
+        }
+
+        reports.slice(0, 50).forEach(report => {
+          const deptClass = {
+            'SEO': 'dept-seo',
+            'Social Media': 'dept-social',
+            'Graphic Design': 'dept-design',
+            'Web Development': 'dept-web'
+          }[report.department] || '';
+
+          const row = document.createElement('div');
+          row.className = 'reports-table-row';
+          row.innerHTML = `
+            <div><strong>${report.employeeName}</strong></div>
+            <div><span class="dept-badge ${deptClass}">${report.department}</span></div>
+            <div>${report.timeSlot}</div>
+            <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${report.workDone}</div>
+            <div style="font-size:11px;color:var(--text-muted);">${report.date}</div>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) {
+        console.error('Admin load error:', err);
+      }
+    }
+
+    // ==================== INITIALIZATION ====================
+    async function init() {
+      await initIndexedDB();
+      initFirebase();
+      initEmailJS();
+
+      if (db) {
+        await syncOfflineReports();
+      }
+
+      window.addEventListener('online', () => {
+        updateConnectionStatus(true, "Back Online - Syncing...");
+        syncOfflineReports();
+      });
+      window.addEventListener('offline', () => {
+        updateConnectionStatus(false, "Offline Mode - Saving Locally");
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>

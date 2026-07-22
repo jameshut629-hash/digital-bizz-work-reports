@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Bizz — Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f8f9fc; --bg-card: #ffffff; --bg-input: #f1f5f9; --bg-hover: #e2e8f0;
+      --border: #e2e8f0; --border-hover: #cbd5e1; --text: #1e293b; --text-secondary: #475569;
+      --text-muted: #94a3b8; --accent: #c42b33; --accent-light: #e84a52; --accent-dark: #8b1e24;
+      --success: #16a34a; --danger: #dc2626; --warning: #d97706; --info: #2563eb;
+      --shadow: 0 4px 24px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+      --shadow-lg: 0 20px 60px rgba(0,0,0,0.08), 0 8px 20px rgba(0,0,0,0.04);
+      --radius-sm: 8px; --radius-md: 12px; --radius-lg: 14px; --radius-xl: 20px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif;
+      min-height: 100vh; position: relative; overflow-x: hidden; line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    .orb { position: fixed; border-radius: 50%; filter: blur(100px); opacity: 0.12; pointer-events: none; z-index: 0; }
+    .orb-1 { width: 400px; height: 400px; background: linear-gradient(135deg, #c42b33, #e84a52); top: -100px; right: -100px; }
+    .orb-2 { width: 300px; height: 300px; background: linear-gradient(135deg, #3b82f6, #60a5fa); bottom: -80px; left: -80px; }
+
+    /* Login Screen */
+    .login-screen { position: fixed; inset: 0; background: var(--bg); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .login-screen.hidden { display: none; }
+    .login-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-xl); padding: 48px 40px; max-width: 420px; width: 100%; box-shadow: var(--shadow-lg); position: relative; animation: slideUp 0.5s ease both; z-index: 1; }
+    .login-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-light)); border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+    .login-brand { text-align: center; margin-bottom: 32px; }
+    .login-brand .brand-logo { width: 56px; height: 56px; border-radius: 16px; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: #fff; margin: 0 auto 16px; box-shadow: 0 4px 16px rgba(196,43,51,0.25); }
+    .login-brand h1 { font-size: 24px; font-weight: 800; margin-bottom: 4px; color: var(--text); }
+    .login-brand p { color: var(--text-muted); font-size: 14px; }
+    .login-field { margin-bottom: 20px; }
+    .login-field label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+    .login-field input { width: 100%; padding: 14px 16px; border-radius: var(--radius-lg); border: 1px solid var(--border); background: var(--bg-input); color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: all 0.25s ease; }
+    .login-field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(196,43,51,0.1); background: #fff; }
+    .login-btn { width: 100%; padding: 16px; border-radius: var(--radius-lg); border: none; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #ffffff; font-size: 15px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; margin-top: 8px; box-shadow: 0 4px 16px rgba(196,43,51,0.25); }
+    .login-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(196,43,51,0.35); }
+    .login-error { color: var(--danger); font-size: 13px; margin-top: 12px; text-align: center; display: none; }
+    .login-error.show { display: block; }
+
+    /* Dashboard */
+    .dashboard { display: none; }
+    .dashboard.show { display: block; }
+    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 260px; background: var(--bg-card); border-right: 1px solid var(--border); z-index: 100; padding: 24px 0; overflow-y: auto; box-shadow: var(--shadow); transition: transform 0.3s ease; }
+    .sidebar-brand { padding: 0 24px 24px; border-bottom: 1px solid var(--border); margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+    .sidebar-brand .brand-logo { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #fff; box-shadow: 0 4px 12px rgba(196,43,51,0.2); }
+    .sidebar-brand h2 { font-size: 18px; font-weight: 800; color: var(--text); }
+    .sidebar-brand span { font-size: 11px; color: var(--text-muted); display: block; }
+    .nav-item { display: flex; align-items: center; gap: 12px; padding: 12px 24px; color: var(--text-secondary); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s ease; border-left: 3px solid transparent; text-decoration: none; }
+    .nav-item:hover { background: var(--bg-hover); color: var(--text); }
+    .nav-item.active { background: rgba(196,43,51,0.06); color: var(--accent); border-left-color: var(--accent); }
+    .nav-icon { font-size: 18px; width: 24px; text-align: center; }
+    .sidebar-footer { position: absolute; bottom: 0; left: 0; right: 0; padding: 16px 24px; border-top: 1px solid var(--border); background: var(--bg-card); }
+    .user-info { display: flex; align-items: center; gap: 10px; }
+    .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; }
+    .user-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .user-role { font-size: 11px; color: var(--text-muted); }
+    .logout-btn { margin-top: 10px; width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer; transition: all 0.2s ease; }
+    .logout-btn:hover { color: var(--danger); border-color: var(--danger); background: rgba(220,38,38,0.05); }
+
+    .menu-toggle { display: none; position: fixed; top: 16px; left: 16px; z-index: 200; width: 40px; height: 40px; border-radius: 10px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text); font-size: 20px; cursor: pointer; align-items: center; justify-content: center; box-shadow: var(--shadow); }
+    .sidebar-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 90; }
+    .sidebar-overlay.show { display: block; }
+
+    .main-content { margin-left: 260px; padding: 32px 40px; min-height: 100vh; position: relative; z-index: 1; }
+    .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 12px; }
+    .page-header h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: var(--text); }
+    .page-header p { color: var(--text-muted); font-size: 14px; margin-top: 4px; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px; }
+    .stat-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; position: relative; overflow: hidden; transition: all 0.3s ease; box-shadow: var(--shadow); }
+    .stat-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+    .stat-card.accent::before { background: linear-gradient(90deg, var(--accent), var(--accent-light)); }
+    .stat-card.success::before { background: linear-gradient(90deg, var(--success), #4ade80); }
+    .stat-card.info::before { background: linear-gradient(90deg, var(--info), #60a5fa); }
+    .stat-card.warning::before { background: linear-gradient(90deg, var(--warning), #fbbf24); }
+    .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; margin-bottom: 16px; }
+    .stat-card.accent .stat-icon { background: rgba(196,43,51,0.1); }
+    .stat-card.success .stat-icon { background: rgba(22,163,74,0.1); }
+    .stat-card.info .stat-icon { background: rgba(37,99,235,0.1); }
+    .stat-card.warning .stat-icon { background: rgba(217,119,6,0.1); }
+    .stat-value { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+    .stat-card.accent .stat-value { color: var(--accent); }
+    .stat-card.success .stat-value { color: var(--success); }
+    .stat-card.info .stat-value { color: var(--info); }
+    .stat-card.warning .stat-value { color: var(--warning); }
+    .stat-label { font-size: 13px; color: var(--text-muted); }
+    .stat-change { font-size: 12px; margin-top: 8px; font-weight: 500; }
+    .stat-change.up { color: var(--success); }
+    .stat-change.down { color: var(--danger); }
+
+    .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 32px; }
+    .chart-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow); }
+    .chart-box h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+    .chart-wrapper { position: relative; height: 280px; }
+    .chart-wrapper-sm { position: relative; height: 200px; }
+
+    .filters-bar { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
+    .filter-group { display: flex; align-items: center; gap: 8px; }
+    .filter-group label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+    .filter-select { padding: 10px 14px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-card); color: var(--text); font-size: 13px; font-family: 'Inter', sans-serif; outline: none; cursor: pointer; min-width: 140px; transition: all 0.2s ease; }
+    .filter-select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(196,43,51,0.1); }
+    .export-btn { padding: 10px 18px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; box-shadow: var(--shadow); }
+    .export-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(196,43,51,0.05); }
+
+    .table-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+    .table-header { display: grid; grid-template-columns: 2fr 1.2fr 1.5fr 3fr 1fr 1fr; padding: 14px 20px; background: var(--bg-input); border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .table-row { display: grid; grid-template-columns: 2fr 1.2fr 1.5fr 3fr 1fr 1fr; padding: 14px 20px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text-secondary); align-items: center; transition: all 0.2s ease; }
+    .table-row:last-child { border-bottom: none; }
+    .table-row:hover { background: var(--bg-input); }
+    .dept-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .dept-seo { background: rgba(22,163,74,0.1); color: #16a34a; }
+    .dept-social { background: rgba(59,130,246,0.1); color: #2563eb; }
+    .dept-design { background: rgba(168,85,247,0.1); color: #9333ea; }
+    .dept-web { background: rgba(245,158,11,0.1); color: #d97706; }
+    .work-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .date-cell { font-size: 12px; color: var(--text-muted); }
+
+    .employee-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 32px; }
+    .employee-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; transition: all 0.3s ease; box-shadow: var(--shadow); }
+    .employee-card:hover { border-color: var(--border-hover); transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .employee-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .employee-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: #fff; box-shadow: 0 4px 12px rgba(196,43,51,0.2); }
+    .employee-name { font-size: 15px; font-weight: 700; color: var(--text); }
+    .employee-dept { font-size: 12px; color: var(--text-muted); }
+    .employee-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .emp-stat { text-align: center; }
+    .emp-stat-value { font-size: 20px; font-weight: 700; color: var(--accent); }
+    .emp-stat-label { font-size: 11px; color: var(--text-muted); }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+    .empty-state-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+    .empty-state h3 { font-size: 18px; margin-bottom: 8px; color: var(--text-secondary); }
+
+    .login-toast { position: fixed; top: 20px; right: 20px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; display: flex; align-items: center; gap: 12px; box-shadow: var(--shadow-lg); z-index: 3000; transform: translateX(400px); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .login-toast.show { transform: translateX(0); }
+    .login-toast-icon { width: 40px; height: 40px; border-radius: 50%; background: rgba(22,163,74,0.1); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+    .login-toast-text h4 { font-size: 14px; font-weight: 700; margin-bottom: 2px; color: var(--text); }
+    .login-toast-text p { font-size: 12px; color: var(--text-muted); }
+
+    .loading-overlay { position: fixed; inset: 0; background: rgba(248,249,252,0.9); z-index: 1500; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+    .loading-overlay.hidden { display: none; }
+    .loading-spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--text-muted); font-size: 14px; }
+
+    .add-emp-form { max-width: 500px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; box-shadow: var(--shadow); margin-bottom: 24px; }
+    .form-field { margin-bottom: 20px; }
+    .form-field label { display: block; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 8px; }
+    .form-field input, .form-field select { width: 100%; padding: 12px 16px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-input); color: var(--text); font-size: 14px; font-family: 'Inter', sans-serif; outline: none; transition: all 0.25s ease; }
+    .form-field input:focus, .form-field select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(196,43,51,0.1); background: #fff; }
+    .add-btn { width: 100%; padding: 14px; border-radius: var(--radius-md); border: none; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 16px rgba(196,43,51,0.25); }
+    .add-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(196,43,51,0.35); }
+    .msg-box { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 13px; text-align: center; display: none; }
+    .msg-box.success { background: rgba(22,163,74,0.08); color: var(--success); border: 1px solid rgba(22,163,74,0.2); display: block; }
+    .msg-box.error { background: rgba(220,38,38,0.08); color: var(--danger); border: 1px solid rgba(220,38,38,0.2); display: block; }
+
+    .emp-list { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+    .emp-list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); transition: all 0.2s ease; }
+    .emp-list-item:last-child { border-bottom: none; }
+    .emp-list-item:hover { background: var(--bg-input); }
+    .emp-info { display: flex; align-items: center; gap: 12px; }
+    .emp-avatar-sm { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), var(--accent-dark)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: #fff; }
+    .emp-name { font-weight: 600; font-size: 14px; color: var(--text); }
+    .remove-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s ease; }
+    .remove-btn:hover { color: var(--danger); border-color: var(--danger); background: rgba(220,38,38,0.05); }
+
+    .month-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+    .month-card h3 { margin-bottom: 12px; font-size: 16px; color: var(--text); }
+    .slot-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .slot-tag { background: var(--bg-input); padding: 6px 12px; border-radius: 6px; font-size: 12px; color: var(--text-secondary); border: 1px solid var(--border); }
+
+    @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 1024px) { .sidebar { width: 220px; } .main-content { margin-left: 220px; padding: 24px; } .stats-grid { grid-template-columns: repeat(2, 1fr); } .employee-grid { grid-template-columns: repeat(2, 1fr); } .chart-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) { .menu-toggle { display: flex; } .sidebar { transform: translateX(-100%); width: 260px; } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0; padding: 20px; padding-top: 70px; } .stats-grid { grid-template-columns: 1fr; } .employee-grid { grid-template-columns: 1fr; } .table-header, .table-row { grid-template-columns: 1fr; gap: 4px; } .table-header { display: none; } .page-header { flex-direction: column; align-items: flex-start; } }
+  </style>
+</head>
+<body>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <button class="menu-toggle" id="menuToggle" onclick="toggleSidebar()">☰</button>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading dashboard...</div>
+  </div>
+
+  <div class="login-toast" id="loginToast">
+    <div class="login-toast-icon">🔐</div>
+    <div class="login-toast-text">
+      <h4>Login Detected</h4>
+      <p id="loginToastText">Welcome back, Admin</p>
+    </div>
+  </div>
+
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="login-brand">
+        <div class="brand-logo">DB</div>
+        <h1>Admin Dashboard</h1>
+        <p>Digital Bizz — Daily Report System</p>
+      </div>
+      <div class="login-field">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" placeholder="Enter admin email..." value="adnanmrao@gmail.com">
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter password...">
+      </div>
+      <button class="login-btn" onclick="handleLogin()">Sign In</button>
+      <div class="login-error" id="loginError">Invalid email or password</div>
+    </div>
+  </div>
+
+  <div class="dashboard" id="dashboard">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-logo">DB</div>
+        <div><h2>Digital Bizz</h2><span>Daily Reports</span></div>
+      </div>
+      <div class="nav-item active" onclick="showSection('overview')">
+        <span class="nav-icon">📊</span><span>Overview</span>
+      </div>
+      <div class="nav-item" onclick="showSection('reports')">
+        <span class="nav-icon">📋</span><span>All Reports</span>
+      </div>
+      <div class="nav-item" onclick="showSection('employees')">
+        <span class="nav-icon">👥</span><span>Employees</span>
+      </div>
+      <div class="nav-item" onclick="showSection('monthly')">
+        <span class="nav-icon">📅</span><span>Monthly View</span>
+      </div>
+      <div class="nav-item" onclick="showSection('addEmployee')">
+        <span class="nav-icon">➕</span><span>Add Employee</span>
+      </div>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar">A</div>
+          <div><div class="user-name" id="sidebarUserName">Admin</div><div class="user-role">CEO / Manager</div></div>
+        </div>
+        <button class="logout-btn" onclick="handleLogout()">🚪 Logout</button>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div id="section-overview">
+        <div class="page-header"><div><h1>Dashboard Overview</h1><p>Real-time daily report analytics</p></div></div>
+        <div class="stats-grid">
+          <div class="stat-card accent">
+            <div class="stat-icon">📋</div>
+            <div class="stat-value" id="statTotal">0</div>
+            <div class="stat-label">Total Reports</div>
+            <div class="stat-change up">All time</div>
+          </div>
+          <div class="stat-card success">
+            <div class="stat-icon">📅</div>
+            <div class="stat-value" id="statToday">0</div>
+            <div class="stat-label">Today's Reports</div>
+            <div class="stat-change up" id="statTodayChange">+0 today</div>
+          </div>
+          <div class="stat-card info">
+            <div class="stat-icon">👥</div>
+            <div class="stat-value" id="statEmployees">0</div>
+            <div class="stat-label">Active Employees</div>
+            <div class="stat-change">Team members</div>
+          </div>
+          <div class="stat-card warning">
+            <div class="stat-icon">🏢</div>
+            <div class="stat-value" id="statDepartments">0</div>
+            <div class="stat-label">Departments</div>
+            <div class="stat-change">Active</div>
+          </div>
+        </div>
+
+        <div class="chart-grid">
+          <div class="chart-box">
+            <h3>Reports by Department</h3>
+            <div class="chart-wrapper-sm"><canvas id="deptChart"></canvas></div>
+          </div>
+          <div class="chart-box">
+            <h3>Reports by Employee</h3>
+            <div class="chart-wrapper-sm"><canvas id="empChart"></canvas></div>
+          </div>
+        </div>
+        <div class="chart-box" style="margin-bottom:32px;">
+          <h3>Weekly Report Trend</h3>
+          <div class="chart-wrapper"><canvas id="trendChart"></canvas></div>
+        </div>
+
+        <div class="page-header" style="margin-top:40px;"><div><h1>Recent Reports</h1><p>Latest submissions from your team</p></div></div>
+        <div class="table-container" id="recentReportsTable">
+          <div class="empty-state"><div class="empty-state-icon">📭</div><h3>No reports yet</h3><p>Reports will appear here once team members start submitting</p></div>
+        </div>
+      </div>
+
+      <div id="section-reports" style="display:none;">
+        <div class="page-header"><div><h1>All Reports</h1><p>Filter and export daily reports</p></div></div>
+        <div class="filters-bar">
+          <div class="filter-group"><label>Month:</label><select class="filter-select" id="filterMonth" onchange="applyFilters()"><option value="all">All Months</option></select></div>
+          <div class="filter-group"><label>Employee:</label><select class="filter-select" id="filterEmployee" onchange="applyFilters()"><option value="all">All Employees</option></select></div>
+          <div class="filter-group"><label>Department:</label><select class="filter-select" id="filterDepartment" onchange="applyFilters()"><option value="all">All Departments</option><option value="SEO">SEO</option><option value="Social Media">Social Media</option><option value="Graphic Design">Graphic Design</option><option value="Web Development">Web Development</option></select></div>
+          <button class="export-btn" onclick="exportToCSV()">📥 Export CSV</button>
+          <button class="export-btn" onclick="exportToExcel()">📊 Export Excel</button>
+        </div>
+        <div class="table-container" id="allReportsTable">
+          <div class="empty-state"><div class="empty-state-icon">📭</div><h3>No reports found</h3><p>Try adjusting your filters</p></div>
+        </div>
+      </div>
+
+      <div id="section-employees" style="display:none;">
+        <div class="page-header"><div><h1>Employee Performance</h1><p>Individual daily report summaries</p></div></div>
+        <div class="employee-grid" id="employeeGrid">
+          <div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">👥</div><h3>No employee data</h3><p>Data will appear once reports are submitted</p></div>
+        </div>
+      </div>
+
+      <div id="section-monthly" style="display:none;">
+        <div class="page-header"><div><h1>Monthly Summary</h1><p>View reports by month</p></div></div>
+        <div class="filters-bar">
+          <div class="filter-group"><label>Select Month:</label><select class="filter-select" id="monthlySelect" onchange="loadMonthlyView()"><option value="">Select a month...</option></select></div>
+        </div>
+        <div id="monthlyContent"></div>
+      </div>
+
+      <div id="section-addEmployee" style="display:none;">
+        <div class="page-header"><div><h1>Add Employee</h1><p>Add new team members to the report system</p></div></div>
+        <div class="add-emp-form">
+          <div class="form-field"><label>Employee Name</label><input type="text" id="newEmployeeName" placeholder="e.g., Ali Khan"></div>
+          <div class="form-field"><label>Department</label><select id="newEmployeeDept"><option value="">Select department...</option><option value="SEO">SEO Department</option><option value="Social Media">Social Media</option><option value="Graphic Design">Graphic Design</option><option value="Web Development">Web Development</option></select></div>
+          <button class="add-btn" onclick="addEmployee()">➕ Add Employee</button>
+          <div class="msg-box" id="addEmployeeMsg"></div>
+        </div>
+        <div><h3 style="font-size:16px;font-weight:700;margin-bottom:16px;color:var(--text);">Current Employees</h3><div class="emp-list" id="employeeList"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDNKDGoNT96JfH8I6RdTgSyVh8H_Ft6gf8",
+      authDomain: "digital-bizz-work-reports.firebaseapp.com",
+      projectId: "digital-bizz-work-reports",
+      storageBucket: "digital-bizz-work-reports.firebasestorage.app",
+      messagingSenderId: "470474549381",
+      appId: "1:470474549381:web:42f2ac8181c463c6c3a1ec"
+    };
+
+    const ADMIN_EMAIL = "adnanmrao@gmail.com";
+    const ADMIN_PASSWORD = "admin123";
+
+    const DEFAULT_EMPLOYEES = [
+      { name: "Faiza Khan", department: "SEO" },
+      { name: "Amina Basharat", department: "SEO" },
+      { name: "Shahid Imran", department: "SEO" },
+      { name: "M Waqas", department: "SEO" },
+      { name: "Bushra Hamad", department: "Social Media" },
+      { name: "Mahnoor Kamran", department: "Social Media" },
+      { name: "Zaki Ibrar", department: "Social Media" },
+      { name: "Faryal Rao", department: "Graphic Design" },
+      { name: "Shakeel Ahmad", department: "Web Development" }
+    ];
+
+    let employees = [];
+    let charts = {};
+    let db = null;
+    let auth = null;
+    let allReports = [];
+    let currentUser = null;
+
+    function loadEmployees() {
+      const stored = localStorage.getItem('dbEmployees');
+      if (stored) { employees = JSON.parse(stored); }
+      else { employees = [...DEFAULT_EMPLOYEES]; saveEmployees(); }
+      renderEmployeeList();
+    }
+    function saveEmployees() { localStorage.setItem('dbEmployees', JSON.stringify(employees)); }
+
+    function addEmployee() {
+      const name = document.getElementById('newEmployeeName').value.trim();
+      const dept = document.getElementById('newEmployeeDept').value;
+      const msgEl = document.getElementById('addEmployeeMsg');
+      if (!name || !dept) { msgEl.textContent = "Please fill all fields"; msgEl.className = "msg-box error"; return; }
+      if (employees.find(e => e.name.toLowerCase() === name.toLowerCase())) { msgEl.textContent = "Employee already exists"; msgEl.className = "msg-box error"; return; }
+      employees.push({ name, department: dept }); saveEmployees();
+      msgEl.textContent = `✅ ${name} added to ${dept}`; msgEl.className = "msg-box success";
+      document.getElementById('newEmployeeName').value = ''; document.getElementById('newEmployeeDept').value = '';
+      renderEmployeeList();
+      setTimeout(() => { msgEl.className = "msg-box"; }, 3000);
+    }
+
+    function removeEmployee(name) {
+      if (!confirm(`Remove ${name}?`)) return;
+      employees = employees.filter(e => e.name !== name); saveEmployees(); renderEmployeeList();
+    }
+
+    function renderEmployeeList() {
+      const container = document.getElementById('employeeList');
+      if (employees.length === 0) { container.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px;">No employees added yet</div>'; return; }
+      let html = '';
+      employees.forEach(emp => {
+        const deptClass = { 'SEO': 'dept-seo', 'Social Media': 'dept-social', 'Graphic Design': 'dept-design', 'Web Development': 'dept-web' }[emp.department] || '';
+        const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0, 2);
+        html += `<div class="emp-list-item"><div class="emp-info"><div class="emp-avatar-sm">${initials}</div><div><div class="emp-name">${emp.name}</div><span class="dept-badge ${deptClass}" style="font-size:11px;">${emp.department}</span></div></div><button class="remove-btn" onclick="removeEmployee('${emp.name}')">🗑️ Remove</button></div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function init() {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      auth = firebase.auth();
+      auth.onAuthStateChanged(user => {
+        if (user && user.email === ADMIN_EMAIL) { currentUser = user; showDashboard(user); }
+        else { showLoginScreen(); }
+        document.getElementById('loadingOverlay').classList.add('hidden');
+      });
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+      const errorEl = document.getElementById('loginError');
+      if (!email || !password) { errorEl.textContent = "Please enter both email and password"; errorEl.classList.add('show'); return; }
+      if (email !== ADMIN_EMAIL) { errorEl.textContent = "Unauthorized email address"; errorEl.classList.add('show'); return; }
+      try {
+        if (password !== ADMIN_PASSWORD) throw new Error("Invalid password");
+        currentUser = { email: ADMIN_EMAIL, displayName: "Admin" };
+        showDashboard(currentUser); showLoginToast("adnanmrao@gmail.com");
+      } catch (err) { errorEl.textContent = err.message || "Invalid email or password"; errorEl.classList.add('show'); }
+    }
+
+    function handleLogout() {
+      currentUser = null;
+      document.getElementById('dashboard').classList.remove('show');
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('loginPassword').value = '';
+      document.getElementById('loginError').classList.remove('show');
+    }
+    function showLoginScreen() { document.getElementById('loginScreen').classList.remove('hidden'); document.getElementById('dashboard').classList.remove('show'); }
+    function showDashboard(user) { document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('dashboard').classList.add('show'); document.getElementById('sidebarUserName').textContent = user.email.split('@')[0]; loadAllData(); }
+    function showLoginToast(email) { const toast = document.getElementById('loginToast'); document.getElementById('loginToastText').textContent = `Welcome back, ${email}`; toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 4000); }
+
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      sidebar.classList.toggle('open'); overlay.classList.toggle('show');
+    }
+
+    function showSection(section) {
+      const sections = ['overview', 'reports', 'employees', 'monthly', 'addEmployee'];
+      sections.forEach(s => { document.getElementById(`section-${s}`).style.display = 'none'; });
+      document.getElementById(`section-${section}`).style.display = 'block';
+      document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('sidebarOverlay').classList.remove('show');
+      if (section === 'employees') loadEmployeeData();
+      if (section === 'monthly') loadMonthlyOptions();
+      if (section === 'addEmployee') renderEmployeeList();
+      if (section === 'overview') setTimeout(renderCharts, 100);
+    }
+
+    async function loadAllData() {
+      try {
+        const snapshot = await db.collection('workReports').orderBy('timestamp', 'desc').get();
+        allReports = []; snapshot.forEach(doc => { allReports.push({ id: doc.id, ...doc.data() }); });
+        console.log(`Loaded ${allReports.length} reports`);
+        updateOverview(); populateFilters(); renderAllReports(allReports); setTimeout(renderCharts, 200);
+      } catch (err) { console.error("Error loading data:", err); }
+    }
+
+    function renderCharts() {
+      if (allReports.length === 0) return;
+      const deptCounts = {}; allReports.forEach(r => { deptCounts[r.department] = (deptCounts[r.department] || 0) + 1; });
+      const deptCtx = document.getElementById('deptChart');
+      if (deptCtx) { if (charts.dept) charts.dept.destroy(); charts.dept = new Chart(deptCtx, { type: 'doughnut', data: { labels: Object.keys(deptCounts), datasets: [{ data: Object.values(deptCounts), backgroundColor: ['#16a34a', '#2563eb', '#9333ea', '#d97706'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 }, boxWidth: 12 } } } } }); }
+
+      const empCounts = {}; allReports.forEach(r => { empCounts[r.employeeName] = (empCounts[r.employeeName] || 0) + 1; });
+      const topEmps = Object.entries(empCounts).sort((a, b) => b[1] - a[1]).slice(0, 8);
+      const empCtx = document.getElementById('empChart');
+      if (empCtx) { if (charts.emp) charts.emp.destroy(); charts.emp = new Chart(empCtx, { type: 'bar', data: { labels: topEmps.map(e => e[0].split(' ')[0]), datasets: [{ label: 'Reports', data: topEmps.map(e => e[1]), backgroundColor: '#c42b33', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#e2e8f0' } }, x: { grid: { display: false } } } } }); }
+
+      const last7Days = []; for (let i = 6; i >= 0; i--) { const d = new Date(); d.setDate(d.getDate() - i); last7Days.push(d.toLocaleDateString()); }
+      const dailyCounts = last7Days.map(date => allReports.filter(r => r.date === date).length);
+      const trendCtx = document.getElementById('trendChart');
+      if (trendCtx) { if (charts.trend) charts.trend.destroy(); charts.trend = new Chart(trendCtx, { type: 'line', data: { labels: last7Days.map(d => d.split('/')[0] + '/' + d.split('/')[1]), datasets: [{ label: 'Daily Reports', data: dailyCounts, borderColor: '#c42b33', backgroundColor: 'rgba(196,43,51,0.08)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#c42b33' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: '#e2e8f0' } }, x: { grid: { display: false } } } } }); }
+    }
+
+    function updateOverview() {
+      const today = new Date().toLocaleDateString();
+      const todayReports = allReports.filter(r => r.date === today);
+      const employees = new Set(allReports.map(r => r.employeeName));
+      const departments = new Set(allReports.map(r => r.department));
+      document.getElementById('statTotal').textContent = allReports.length;
+      document.getElementById('statToday').textContent = todayReports.length;
+      document.getElementById('statTodayChange').textContent = `+${todayReports.length} today`;
+      document.getElementById('statEmployees').textContent = employees.size;
+      document.getElementById('statDepartments').textContent = departments.size;
+      renderTable('recentReportsTable', allReports.slice(0, 10));
+    }
+
+    function populateFilters() {
+      const months = new Set();
+      allReports.forEach(r => { if (r.timestamp) { const d = new Date(r.timestamp); months.add(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`); } });
+      const monthSelect = document.getElementById('filterMonth');
+      const monthlySelect = document.getElementById('monthlySelect');
+      while (monthSelect.options.length > 1) monthSelect.remove(1);
+      while (monthlySelect.options.length > 1) monthlySelect.remove(1);
+      months.forEach(m => { const [y, mn] = m.split('-'); const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; const label = `${monthNames[parseInt(mn)-1]} ${y}`; monthSelect.innerHTML += `<option value="${m}">${label}</option>`; monthlySelect.innerHTML += `<option value="${m}">${label}</option>`; });
+      const employees = [...new Set(allReports.map(r => r.employeeName))].sort();
+      const empSelect = document.getElementById('filterEmployee');
+      while (empSelect.options.length > 1) empSelect.remove(1);
+      employees.forEach(e => { empSelect.innerHTML += `<option value="${e}">${e}</option>`; });
+    }
+
+    function applyFilters() {
+      const month = document.getElementById('filterMonth').value;
+      const employee = document.getElementById('filterEmployee').value;
+      const dept = document.getElementById('filterDepartment').value;
+      let filtered = [...allReports];
+      if (month !== 'all') { const [y, m] = month.split('-'); filtered = filtered.filter(r => { if (!r.timestamp) return false; const d = new Date(r.timestamp); return d.getFullYear() == y && (d.getMonth()+1) == parseInt(m); }); }
+      if (employee !== 'all') filtered = filtered.filter(r => r.employeeName === employee);
+      if (dept !== 'all') filtered = filtered.filter(r => r.department === dept);
+      renderTable('allReportsTable', filtered);
+    }
+
+    function renderTable(containerId, reports) {
+      const container = document.getElementById(containerId);
+      if (reports.length === 0) { container.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📭</div><h3>No reports found</h3><p>Try adjusting your filters or wait for team submissions</p></div>`; return; }
+      let html = `<div class="table-header"><div>Employee</div><div>Department</div><div>Time Slot</div><div>Work Done</div><div>Date</div><div>Status</div></div>`;
+      reports.forEach(r => {
+        const deptClass = { 'SEO': 'dept-seo', 'Social Media': 'dept-social', 'Graphic Design': 'dept-design', 'Web Development': 'dept-web' }[r.department] || '';
+        const dateStr = r.date || (r.timestamp ? new Date(r.timestamp).toLocaleDateString() : '-');
+        html += `<div class="table-row"><div><strong>${r.employeeName}</strong></div><div><span class="dept-badge ${deptClass}">${r.department}</span></div><div>${r.timeSlot}</div><div class="work-text" title="${r.workDone}">${r.workDone}</div><div class="date-cell">${dateStr}</div><div style="color:var(--success);font-size:12px;">✓ Submitted</div></div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    function loadEmployeeData() {
+      const empData = {};
+      allReports.forEach(r => {
+        if (!empData[r.employeeName]) { empData[r.employeeName] = { name: r.employeeName, department: r.department, reports: 0, lastReport: null }; }
+        empData[r.employeeName].reports++;
+        if (!empData[r.employeeName].lastReport || r.timestamp > empData[r.employeeName].lastReport) empData[r.employeeName].lastReport = r.timestamp;
+      });
+      const grid = document.getElementById('employeeGrid');
+      if (Object.keys(empData).length === 0) { grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">👥</div><h3>No employee data</h3><p>Data will appear once reports are submitted</p></div>`; return; }
+      let html = '';
+      Object.values(empData).forEach(emp => {
+        const initials = emp.name.split(' ').map(n => n[0]).join('').substring(0,2);
+        const lastDate = emp.lastReport ? new Date(emp.lastReport).toLocaleDateString() : 'Never';
+        html += `<div class="employee-card"><div class="employee-header"><div class="employee-avatar">${initials}</div><div><div class="employee-name">${emp.name}</div><div class="employee-dept">${emp.department}</div></div></div><div class="employee-stats"><div class="emp-stat"><div class="emp-stat-value">${emp.reports}</div><div class="emp-stat-label">Reports</div></div><div class="emp-stat"><div class="emp-stat-value">${Math.round(emp.reports * 0.5)}h</div><div class="emp-stat-label">Est. Hours</div></div><div class="emp-stat"><div class="emp-stat-value" style="font-size:14px;">${lastDate}</div><div class="emp-stat-label">Last Report</div></div></div></div>`;
+      });
+      grid.innerHTML = html;
+    }
+
+    function loadMonthlyOptions() {}
+
+    function loadMonthlyView() {
+      const month = document.getElementById('monthlySelect').value;
+      if (!month) return;
+      const [y, m] = month.split('-');
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const monthName = monthNames[parseInt(m)-1];
+      const filtered = allReports.filter(r => { if (!r.timestamp) return false; const d = new Date(r.timestamp); return d.getFullYear() == y && (d.getMonth()+1) == parseInt(m); });
+      const byEmployee = {}; filtered.forEach(r => { if (!byEmployee[r.employeeName]) byEmployee[r.employeeName] = []; byEmployee[r.employeeName].push(r); });
+      let html = `<div class="page-header" style="margin-top:20px;"><div><h1>${monthName} ${y}</h1><p>${filtered.length} reports submitted this month</p></div></div><div class="stats-grid" style="margin-bottom:24px;"><div class="stat-card accent"><div class="stat-value">${filtered.length}</div><div class="stat-label">Total Reports</div></div><div class="stat-card success"><div class="stat-value">${Object.keys(byEmployee).length}</div><div class="stat-label">Employees Active</div></div></div>`;
+      Object.entries(byEmployee).forEach(([name, reports]) => { html += `<div class="month-card"><h3>${name} — ${reports.length} reports</h3><div class="slot-tags">${reports.map(r => `<span class="slot-tag">${r.timeSlot} — ${r.date}</span>`).join('')}</div></div>`; });
+      document.getElementById('monthlyContent').innerHTML = html;
+    }
+
+    function exportToCSV() {
+      const filtered = getFilteredReports();
+      if (filtered.length === 0) { alert('No reports to export'); return; }
+      let csv = 'Employee,Department,Time Slot,Work Done,Date,Timestamp\n';
+      filtered.forEach(r => { csv += `"${r.employeeName}","${r.department}","${r.timeSlot}","${r.workDone.replace(/"/g,'""')}","${r.date || ''}","${r.timestamp || ''}"\n`; });
+      const blob = new Blob([csv], { type: 'text/csv' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `work-reports-${new Date().toISOString().split('T')[0]}.csv`; a.click(); URL.revokeObjectURL(url);
+    }
+
+    function exportToExcel() {
+      const filtered = getFilteredReports();
+      if (filtered.length === 0) { alert('No reports to export'); return; }
+      let html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="UTF-8"></head><body><table><tr><th>Employee</th><th>Department</th><th>Time Slot</th><th>Work Done</th><th>Date</th><th>Timestamp</th></tr>`;
+      filtered.forEach(r => { html += `<tr><td>${r.employeeName}</td><td>${r.department}</td><td>${r.timeSlot}</td><td>${r.workDone}</td><td>${r.date || ''}</td><td>${r.timestamp || ''}</td></tr>`; });
+      html += '</table></body></html>';
+      const blob = new Blob([html], { type: 'application/vnd.ms-excel' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = `work-reports-${new Date().toISOString().split('T')[0]}.xls`; a.click(); URL.revokeObjectURL(url);
+    }
+
+    function getFilteredReports() {
+      const month = document.getElementById('filterMonth').value;
+      const employee = document.getElementById('filterEmployee').value;
+      const dept = document.getElementById('filterDepartment').value;
+      let filtered = [...allReports];
+      if (month !== 'all') { const [y, m] = month.split('-'); filtered = filtered.filter(r => { if (!r.timestamp) return false; const d = new Date(r.timestamp); return d.getFullYear() == y && (d.getMonth()+1) == parseInt(m); }); }
+      if (employee !== 'all') filtered = filtered.filter(r => r.employeeName === employee);
+      if (dept !== 'all') filtered = filtered.filter(r => r.department === dept);
+      return filtered;
+    }
+
+    loadEmployees();
+    init();
+  </script>
+</body>
+</html>
